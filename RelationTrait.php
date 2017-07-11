@@ -19,9 +19,9 @@ use yii\helpers\ArrayHelper;
 
 trait RelationTrait
 {
-    public function loadAll($POST, $skippedRelations = [])
+    public function loadAll($POST, $skippedRelations = [], $formName = false)
     {
-        if ($this->load($POST)) {
+        if (($formName ? $this->load($POST, $formName) : $this->load($POST))) {
             $shortName = StringHelper::basename(get_class($this));
             $relData = $this->getRelationData();
             foreach ($POST as $key => $value) {
@@ -32,7 +32,7 @@ trait RelationTrait
                     $isHasMany = is_array($value) && is_array(current($value));
                     $relName = ($isHasMany) ? lcfirst(Inflector::pluralize($key)) : lcfirst($key);
 
-                    if (in_array($relName, $skippedRelations) || !array_key_exists($relName,$relData)){
+                    if (in_array($relName, $skippedRelations) || !array_key_exists($relName, $relData)) {
                         continue;
                     }
 
@@ -144,7 +144,7 @@ trait RelationTrait
                                         // Many Many
                                         $notIn = ['not in', $notDeletedPK];
                                         try {
-                                            $relModel->deleteAll(['and', $notDeletedFK,$notIn]);
+                                            $relModel->deleteAll(['and', $notDeletedFK, $notIn]);
                                         } catch (\yii\db\IntegrityException $exc) {
                                             $this->addError($name, "Data can't be deleted because it's still used by another data.");
                                             $error = true;
@@ -178,9 +178,14 @@ trait RelationTrait
                                     $error = true;
                                 }
                             }
+                        } else {
+                            $AQ = $this->getRelation($name);
+                            foreach ($AQ->all() as $relatedModel) {
+                                $relatedModel->delete();
+                            }
                         }
                     }
-                }else{
+                } else {
                     //No Children left
                     $relAvail = array_keys($this->relatedRecords);
                     $relData = $this->getRelationData();
